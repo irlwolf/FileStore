@@ -1,108 +1,118 @@
-# Don't Remove Credit @CodeFlix_Bots, @rohit_1888
-# Ask Doubt on telegram @CodeflixSupport
-
-
 import os
-from os import environ,getenv
-import logging
-from logging.handlers import RotatingFileHandler
+import schedule
+import time
+from pyrogram import Client, InlineKeyboardMarkup, InlineKeyboardButton
+from pymongo import MongoClient
+import requests
 
-#rohit_1888 on Tg
+# Replace these with your own values
+API_ID = 23580732
+API_HASH = "81ca3df48f25d954b2ebef5aec715a73"
+BOT_TOKEN = "8139084920:AAGhJnoy1EIdgg6Ex9BH4Xx_hNuPyHAuL-w"
+BATCH_SIZE = 10
+BATCH_TIMEOUT = 60  # seconds
+BROADCAST_INTERVAL = 60  # seconds
+BROADCAST_MESSAGE = "Hello, this is a broadcast message!"
+AUTO_DELETE_TIME = 5  # minutes
+GET_FILE_AGAIN_BUTTON_TEXT = "Get File Again"
+GET_FILE_AGAIN_BUTTON_URL = "https://example.com/get_file_again"
+URL_SHORTENR_WEBSITE = "shortxlinks.com"
+URL_SHORTNER_WEBSITE_API = "89e10e3c7ab7b79375729adab10b92bf5d863f8d"
+OWNER_ID = 1302460619  # Replace with your owner ID
+ADMIN_ID = [1302460619]  # Replace with your admin IDs
 
-#Bot token @Botfather
-TG_BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "8139084920:AAHcSfLTQxA4QLt4a3W-DRilryr4Kdccn3w")
-#Your API ID from my.telegram.org
-APP_ID = int(os.environ.get("APP_ID", "23580732"))
-#Your API Hash from my.telegram.org
-API_HASH = os.environ.get("API_HASH", "81ca3df48f25d954b2ebef5aec715a73")
-#Your db channel Id
-CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1002494287255"))
-# NAMA OWNER
-OWNER = os.environ.get("OWNER", "irlwolf")
-#OWNER ID
-OWNER_ID = int(os.environ.get("OWNER_ID", "1302460619"))
-#Port
-PORT = os.environ.get("PORT", "8080")
-#Database
-DB_URI = os.environ.get("DATABASE_URL", "mongodb+srv://irlwolf:9aEpUre0fkmBjHVz@cluster0.jkd3o.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-DB_NAME = os.environ.get("DATABASE_NAME", "irlwolf")
+# Connect to the MongoDB database
+client = MongoClient("mongodb+srv://irlwolf:9aEpUre0fkmBjHVz@cluster0.jkd3o.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+db = client["telegram_bot"]
+collection = db["files"]
+users_collection = db["users"]
 
-#Time in seconds for message delete, put 0 to never delete
-TIME = int(os.environ.get("TIME", "10"))
+# Create a Pyrogram client
+app = Client("telegram_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
+# Function to store a file
+def store_file(file_id, file):
+    collection.insert_one({"file_id": file_id, "file": file})
 
-#force sub channel id, if you want enable force sub
-FORCE_SUB_CHANNEL1 = int(os.environ.get("FORCE_SUB_CHANNEL1", "-1002470891127"))
-#put 0 to disable
-FORCE_SUB_CHANNEL2 = int(os.environ.get("FORCE_SUB_CHANNEL2", "0"))#put 0 to disable
-FORCE_SUB_CHANNEL3 = int(os.environ.get("FORCE_SUB_CHANNEL3", "0"))#put 0 to disable
-FORCE_SUB_CHANNEL4 = int(os.environ.get("FORCE_SUB_CHANNEL4", "0"))#put 0 to disable
+# Function to get a file
+def get_file(file_id):
+    file = collection.find_one({"file_id": file_id})
+    return file["file"]
 
-TG_BOT_WORKERS = int(os.environ.get("TG_BOT_WORKERS", "4"))
+# Function to delete a file
+def delete_file(file_id):
+    collection.delete_one({"file_id": file_id})
 
-START_PIC = os.environ.get("START_PIC", "https://telegra.ph/file/ec17880d61180d3312d6a.jpg")
-FORCE_PIC = os.environ.get("FORCE_PIC", "https://telegra.ph/file/e292b12890b8b4b9dcbd1.jpg")
+# Function to store a user ID
+def store_user_id(user_id):
+    users_collection.insert_one({"user_id": user_id})
 
-# Turn this feature on or off using True or False put value inside  ""
-# TRUE for yes FALSE if no 
-TOKEN = True if os.environ.get('TOKEN', "True") == "True" else False 
-SHORTLINK_URL = os.environ.get("SHORTLINK_URL", "shortxlinks.com")
-SHORTLINK_API = os.environ.get("SHORTLINK_API", "89e10e3c7ab7b79375729adab10b92bf5d863f8d")
-VERIFY_EXPIRE = int(os.environ.get('VERIFY_EXPIRE', 600)) # Add time in seconds
-IS_VERIFY = os.environ.get("IS_VERIFY", "True")
-TUT_VID = os.environ.get("TUT_VID","https://t.me/hwdownload/3")
+# Function to get all user IDs
+def get_all_user_ids():
+    users = users_collection.find()
+    return [user["user_id"] for user in users]
 
+# Function to send a broadcast message
+def send_broadcast_message():
+    users = get_all_user_ids()
+    for user in users:
+        app.send_message(chat_id=user, text=BROADCAST_MESSAGE)
 
-HELP_TXT = "<b><blockquote>ᴛʜɪs ɪs ᴀɴ ғɪʟᴇ ᴛᴏ ʟɪɴᴋ ʙᴏᴛ ᴡᴏʀᴋ ғᴏʀ @otakuflix_network\n\n❏ ʙᴏᴛ ᴄᴏᴍᴍᴀɴᴅs\n├/start : sᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ\n├/about : ᴏᴜʀ Iɴғᴏʀᴍᴀᴛɪᴏɴ\n└/help : ʜᴇʟᴘ ʀᴇʟᴀᴛᴇᴅ ʙᴏᴛ\n\n sɪᴍᴘʟʏ ᴄʟɪᴄᴋ ᴏɴ ʟɪɴᴋ ᴀɴᴅ sᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ ᴊᴏɪɴ ʙᴏᴛʜ ᴄʜᴀɴɴᴇʟs ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ ᴛʜᴀᴛs ɪᴛ.....!\n\n ᴅᴇᴠᴇʟᴏᴘᴇᴅ ʙʏ <a href=https://t.me/cosmic_freak>sᴜʙᴀʀᴜ</a></blockquote></b>"
+# Function to shorten a URL
+def shorten_url(url):
+    api_url = f"https://{URL_SHORTENR_WEBSITE}/api"
+    headers = {"Authorization": f"Bearer {URL_SHORTNER_WEBSITE_API}"}
+    data = {"url": url}
+    response = requests.post(api_url, headers=headers, json=data)
+    return response.json()["short_url"]
 
-
-ABOUT_TXT = "<b><blockquote>◈ ᴄʀᴇᴀᴛᴏʀ: <a href=https://t.me/cosmic_freak>subaru</a>\n◈ ꜰᴏᴜɴᴅᴇʀ ᴏꜰ : <a href=https://t.me/otakuflix_network>ᴏᴛᴀᴋᴜғʟɪx ɴᴇᴛᴡᴏʀᴋ</a>\n◈ ᴀɴɪᴍᴇ ᴄʜᴀɴɴᴇʟ : <a href=https://t.me/anime_cruise_netflix>ᴀɴɪᴍᴇ ᴄʀᴜɪsᴇ</a>\n◈ sᴇʀɪᴇs ᴄʜᴀɴɴᴇʟ : <a href=https://t.me/webseries_flix>ᴡᴇʙsᴇʀɪᴇs ғʟɪx</a>\n◈ ᴀᴅᴜʟᴛ ᴍᴀɴʜᴡᴀ : <a href=https://t.me/pornhwa_flix>ᴘᴏʀɴʜᴡᴀs</a>\n◈ ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href=https://t.me/cosmic_freak>subaru</a></blockquote></b>"
-
-
-START_MSG = os.environ.get("START_MESSAGE", "<b><blockquote>ʙᴀᴋᴋᴀᴀᴀ!! {first}\n\n ɪ ᴀᴍ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ, ɪ ᴄᴀɴ sᴛᴏʀᴇ ᴘʀɪᴠᴀᴛᴇ ғɪʟᴇs ɪɴ sᴘᴇᴄɪғɪᴇᴅ ᴄʜᴀɴɴᴇʟ ᴀɴᴅ ᴏᴛʜᴇʀ ᴜsᴇʀs ᴄᴀɴ ᴀᴄᴄᴇss ɪᴛ ғʀᴏᴍ sᴘᴇᴄɪᴀʟ ʟɪɴᴋ.</blockquote></b>")
-try:
-    ADMINS=[6376328008]
-    for x in (os.environ.get("ADMINS", "5115691197 6273945163 6103092779 5231212075").split()):
-        ADMINS.append(int(x))
-except ValueError:
-        raise Exception("Your Admins list does not contain valid integers.")
-
-#Force sub message 
-FORCE_MSG = os.environ.get("FORCE_SUB_MESSAGE", "ʜᴇʟʟᴏ {first}\n\n<b>ᴊᴏɪɴ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs ᴀɴᴅ ᴛʜᴇɴ ᴄʟɪᴄᴋ ᴏɴ ʀᴇʟᴏᴀᴅ button ᴛᴏ ɢᴇᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇꜱᴛᴇᴅ ꜰɪʟᴇ.</b>")
-
-#set your Custom Caption here, Keep None for Disable Custom Caption
-CUSTOM_CAPTION = os.environ.get("CUSTOM_CAPTION", "<b>• ʙʏ @OtakuFlix_Network</b>")
-
-#set True if you want to prevent users from forwarding files from bot
-PROTECT_CONTENT = True if os.environ.get('PROTECT_CONTENT', "False") == "True" else False
-
-#Set true if you want Disable your Channel Posts Share button
-DISABLE_CHANNEL_BUTTON = os.environ.get("DISABLE_CHANNEL_BUTTON", None) == 'True'
-
-BOT_STATS_TEXT = "<b>BOT UPTIME</b>\n{uptime}"
-USER_REPLY_TEXT = "ʙᴀᴋᴋᴀ ! ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ ꜱᴇɴᴘᴀɪ!!"
-
-ADMINS.append(OWNER_ID)
-ADMINS.append(6497757690)
-
-LOG_FILE_NAME = "filesharingbot.txt"
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(asctime)s - %(levelname)s] - %(name)s - %(message)s",
-    datefmt='%d-%b-%y %H:%M:%S',
-    handlers=[
-        RotatingFileHandler(
-            LOG_FILE_NAME,
-            maxBytes=50000000,
-            backupCount=10
-        ),
-        logging.StreamHandler()
-    ]
-)
-logging.getLogger("pyrogram").setLevel(logging.WARNING)
-
-
-def LOGGER(name: str) -> logging.Logger:
-    return logging.getLogger(name)
-   
+# Start the bot
+@app.on_message()
+async def handle_message(client, message):
+    # Check if the user is the owner or admin
+    if message.from_user.id == OWNER_ID or message.from_user.id in ADMIN_ID:
+        # Handle all commands
+        if message.text == "/start":
+            await message.reply("Welcome to the file store bot!")
+            store_user_id(message.from_user.id)
+        elif message.text == "/upload":
+            # Get the file from the user
+            file = await client.download_media(message)
+            # Store the file in the database
+            file_id = os.path.basename(file)
+            store_file(file_id, file)
+            # Generate a link for the file
+            link = f"https://example.com/{file_id}"
+            # Shorten the link
+            shortened_link = shorten_url(link)
+            await message.reply(f"File uploaded successfully! You can access it here: {shortened_link}")
+        elif message.text == "/batch":
+            # Initialize a list to store the files
+            files = []
+            # Wait for the user to upload all the files
+            await message.reply("Please upload all the files. You can upload up to {} files.".format(BATCH_SIZE))
+            # Get all the files from the user
+            for i in range(BATCH_SIZE):
+                file = await client.download_media(message)
+                files.append(file)
+                # Check if the user has uploaded all the files
+                if len(files) == BATCH_SIZE:
+                    break
+            # Store all the files in the database
+            batch_id = os.path.basename(files[0])
+            for file in files:
+                file_id = os.path.basename(file)
+                store_file(file_id, file)
+                # Generate a link for the file
+                link = f"https://example.com/{batch_id}/{file_id}"
+                # Shorten the link
+                shortened_link = shorten_url(link)
+                # Add the link to the list of links
+                links.append(shortened_link)
+            # Send all the links to the user
+            await message.reply("All files uploaded successfully! You can access them here: {}".format("\n".join(links)))
+        elif message.text == "/delete":
+            # Get the file ID from the user
+            file_id = message.text.split(" ")[1]
+            # Delete the file from the database
+            delete_file(file_id
