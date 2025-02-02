@@ -10,12 +10,7 @@ API_ID = 23580732
 API_HASH = "81ca3df48f25d954b2ebef5aec715a73"
 BOT_TOKEN = "8139084920:AAGhJnoy1EIdgg6Ex9BH4Xx_hNuPyHAuL-w"
 BATCH_SIZE = 10
-BATCH_TIMEOUT = 60  # seconds
-BROADCAST_INTERVAL = 60  # seconds
 BROADCAST_MESSAGE = "Hello, this is a broadcast message!"
-AUTO_DELETE_TIME = 5  # minutes
-GET_FILE_AGAIN_BUTTON_TEXT = "Get File Again"
-GET_FILE_AGAIN_BUTTON_URL = "https://example.com/get_file_again"
 URL_SHORTENR_WEBSITE = "shortxlinks.com"
 URL_SHORTNER_WEBSITE_API = "89e10e3c7ab7b79375729adab10b92bf5d863f8d"
 OWNER_ID = 1302460619  # Replace with your owner ID
@@ -37,7 +32,7 @@ def store_file(file_id, file):
 # Function to get a file
 def get_file(file_id):
     file = collection.find_one({"file_id": file_id})
-    return file["file"]
+    return file["file"] if file else None
 
 # Function to delete a file
 def delete_file(file_id):
@@ -64,7 +59,7 @@ def shorten_url(url):
     headers = {"Authorization": f"Bearer {URL_SHORTNER_WEBSITE_API}"}
     data = {"url": url}
     response = requests.post(api_url, headers=headers, json=data)
-    return response.json()["short_url"]
+    return response.json().get("short_url", "Error shortening URL")
 
 # Start the bot
 @app.on_message()
@@ -77,42 +72,44 @@ async def handle_message(client, message):
             store_user_id(message.from_user.id)
         elif message.text == "/upload":
             # Get the file from the user
-            file = await client.download_media(message)
-            # Store the file in the database
-            file_id = os.path.basename(file)
-            store_file(file_id, file)
-            # Generate a link for the file
-            link = f"https://example.com/{file_id}"
-            # Shorten the link
-            shortened_link = shorten_url(link)
-            await message.reply(f"File uploaded successfully! You can access it here: {shortened_link}")
-        elif message.text == "/batch":
-            # Initialize a list to store the files
-            files = []
-            # Wait for the user to upload all the files
-            await message.reply("Please upload all the files. You can upload up to {} files.".format(BATCH_SIZE))
-            # Get all the files from the user
-            for i in range(BATCH_SIZE):
-                file = await client.download_media(message)
-                files.append(file)
-                # Check if the user has uploaded all the files
-                if len(files) == BATCH_SIZE:
-                    break
-            # Store all the files in the database
-            batch_id = os.path.basename(files[0])
-            for file in files:
+            if message.reply_to_message and message.reply_to_message.document:
+                file = await client.download_media(message.reply_to_message)
                 file_id = os.path.basename(file)
                 store_file(file_id, file)
-                # Generate a link for the file
-                link = f"https://example.com/{batch_id}/{file_id}"
-                # Shorten the link
+                link = f"https://example.com/{file_id}"
                 shortened_link = shorten_url(link)
-                # Add the link to the list of links
-                links.append(shortened_link)
-            # Send all the links to the user
-            await message.reply("All files uploaded successfully! You can access them here: {}".format("\n".join(links)))
-        elif message.text == "/delete":
-            # Get the file ID from the user
-            file_id = message.text.split(" ")[1]
-            # Delete the file from the database
-            delete_file(file_id
+                await message.reply(f"File uploaded successfully! You can access it here: {shortened_link}")
+            else:
+                await message.reply("Please reply to a message containing a file to upload.")
+        elif message.text == "/batch":
+            await message.reply("Please upload all the files. You can upload up to {} files.".format(BATCH_SIZE))
+            files = []
+            links = []
+            for _ in range(BATCH_SIZE):
+                file_message = await client.listen(message.chat.id)  # Wait for the user to upload a file
+                if file_message and file_message.document:
+                    file = await client.download_media(file_message)
+                    file_id = os.path.basename(file)
+                    store_file(file_id, file)
+                    link = f"https://example.com/{file_id}"
+                    shortened_link = shorten_url(link)
+                    links.append(shortened_link)
+                    files.append(file_id)
+                else:
+                    break  # Stop if no more files are uploaded
+            if links:
+                await message.reply("All files uploaded successfully! You can access them here:\n" + "\n".join(links))
+            else:
+                await message.reply("No files were uploaded.")
+        elif message.text.startswith("/delete"):
+            try:
+                file_id = message.text.split(" ")[1]
+                delete_file(file_id)
+                await message.reply(f"File with ID {file_id} deleted successfully.")
+            except IndexError:
+                await message.reply("Please provide a file ID to delete.")
+            except Exception as e:
+                await message.reply(f"An error occurred: {str(e)}")
+
+# Run the bot
+app.run()
