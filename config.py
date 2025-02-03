@@ -8,7 +8,7 @@ import requests
 # Replace these with your own values
 API_ID = 23580732
 API_HASH = "81ca3df48f25d954b2ebef5aec715a73"
-BOT_TOKEN = "8139084920:AAGhJnoy1EIdgg6Ex9BH4Xx_hNuPyHAuL-w"
+BOT_TOKEN = "8139084920:AAH-2pX1yZLEw6UeqbhJtshQ95esk-zP_s0"
 BATCH_SIZE = 10
 BROADCAST_MESSAGE = "Hello, this is a broadcast message!"
 URL_SHORTENR_WEBSITE = "shortxlinks.com"
